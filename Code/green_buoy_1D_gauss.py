@@ -30,9 +30,9 @@ import sys
 
 
 # set data path, dimension of gaussian, number of gaussians and number of iterations
-k = 3
+k = 2
 d = 1
-iterations = 30
+iterations = 500
 args = sys.argv
 video_path = ""
 file_path = ""
@@ -69,23 +69,23 @@ while (cap.isOpened()):
         prob[: ,index:index+1] = gaussian_estimation_array(img, mean_gaussian[index], covariance_matrix_gaussian[index], 1) * weights_gaussian[index]
         likelihood = prob.sum(1)
     prob = np.reshape(likelihood, (frame.shape[0], frame.shape[1]))
-    prob[prob > np.max(prob) / 3.0] = 255
+    prob[prob > np.max(prob) / 2.0] = 255
     
     # pre-process image and create a binary image
     output_image = np.zeros_like(frame)
     output_image[:, :, 1] = prob
     gray_output_image = cv2.cvtColor(output_image, cv2.COLOR_BGR2GRAY)
-    output_image = cv2.GaussianBlur(gray_output_image, (5, 5), 2)
-    _, edged = cv2.threshold(output_image, 30, 255, 0)
-    
+    output_image = cv2.GaussianBlur(gray_output_image, (5, 5), 5)
+    _, edged = cv2.threshold(output_image, 100, 255, 0)
+
     # find contours and segment the orange buoy
     (cnts, _) = cv2.findContours(edged.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[-2:]
     cnts, _ = sort_contours(cnts, method="right-to-left")
     hull = cv2.convexHull(cnts[0])
     (x, y), radius = cv2.minEnclosingCircle(hull)
     frame_count = frame_count + 1
-    if (radius > 6 and frame_count < 55):
-        cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 0), 2)
+    if (radius > 3 and frame_count < 50):
+        cv2.circle(frame, (int(x), int(y)), int(radius + 1), (0, 255, 0), 5)
         out.write(frame)
     else:
         out.write(frame)
