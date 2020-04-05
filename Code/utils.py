@@ -28,6 +28,7 @@
 import glob
 import cv2
 import numpy as np
+import math
 import matplotlib.pyplot as plt
 import scipy
 
@@ -114,6 +115,16 @@ def gaussian_estimation_array(data_point, mean, covariance, dimension):
 
 # gaussian estimation for 3-dimensional case
 def gaussian_estimation_3d(data_point, mean, cov):
+    """
+    Inputs:
+    data_point - data point of the gaussian, size (n x d)
+    mean - mean of the gaussian, size (1 x d)
+    cov - covariance of the gaussian, size (1 x d x d)
+    
+    Outputs:
+    value of the gaussian, size (n x d)
+    """
+
     det_cov = np.linalg.det(cov)
     cov_inv = np.zeros_like(cov)
     mean = np.array(mean)
@@ -143,103 +154,12 @@ def expectation_step(n, d, k, data, weights_gaussian, mean_gaussian, covariance_
     """
     
     # create empty array of list of probabilities
-    probabilities = []
-    
-    # iterate through each item
-    for j in range(0, n):
-        
-        # calculate probability of a point being in the k-gaussians
-        probability_x = 0.0
-        for i in range(0, k):
-            probability_x = probability_x + gaussian_estimation(data[j], mean_gaussian[i], covariance_matrix_gaussian[i], d) * weights_gaussian[i]
-        probability_x_temp = []    
-        for i in range(0, k):
-            val = (gaussian_estimation(data[j], mean_gaussian[i], covariance_matrix_gaussian[i], d) * weights_gaussian[i]) / probability_x
-            probability_x_temp.append(val)
-        
-        # append probabilities of a point being in k-gaussians of size (1 x k)
-        probabilities.append(probability_x_temp)
-    return np.array(probabilities)
-
-
-# update weights, maximization step
-def update_weights(probabilities, k):
-    """
-    Inputs:
-    probabilities - probability of the datapoint being in the k-gaussians, size (n x k)
-    k - number of gaussians
-    
-    Outputs:
-    updated_weights - weights of the k-gaussians, size (k)
-    """
-    
-    probabilities = np.array(probabilities)
-    updated_weights = []
-    for i in range(0, k):
-        updated_weights.append(np.sum(probabilities[:, i]))
-    updated_weights = np.array(updated_weights)
-    return updated_weights / np.sum(updated_weights)
-
-
-# update mean, maximization step
-def update_mean(data, probabilities, k):
-    """
-    Inputs:
-    data - training data, size (n x d)
-    probabilities - probability of the datapoints being in k-gaussians, size (n x k)
-    k - number of the gaussians
-    
-    Outputs:
-    updated_mean - mean of the k-gaussians, size (k x d)
-    """
-    
-    probabilities = np.array(probabilities)
-    data = np.array(data)
-    updated_weights = []
-    updated_mean = np.matmul(probabilities.T, data)
-    for i in range(0, k):
-        updated_weights.append(np.sum(probabilities[:, i]))
-        updated_mean[i] = updated_mean[i] / updated_weights[i]
-    return updated_mean
-
-
-# update covariance, maximization step
-def update_covariance(data, probabilities_values, mean_gaussian, k, d, n):
-    """
-    Inputs:
-    data - training data, size (n x d)
-    probability_values - probability of the datapoint being in k-gaussians, size (n x k)
-    mean_gaussian - mean of the k-gaussians, size (k x d)
-    k - number of the gaussians
-    d - dimension of the gaussian
-    n - number of data-points
-    
-    Outputs:
-    k_array - probability array, size (n x k)
-    """
-    
-    probabilities_values = np.array(probabilities_values)
-    mean_gaussian = np.array(mean_gaussian)
-    data = np.array(data)
-    probabilities_sum = []
-    k_array = []
-    for i in range(0, k):
-        probabilities_sum.append(np.sum(probabilities_values[:, i]))
-        covariance_array = []
-        for index1 in range(0, d):
-            temp_array = []
-            for index2 in range(0, d):
-                check = 0
-                for index3 in range(0, n):
-                    check = check + (probabilities_values[index3, i] * (data[index3, index1] - mean_gaussian[i, index1]) * (data[index3, index2] - mean_gaussian[i, index2]))
-                check = check / probabilities_sum[i]
-                if(index1 == index2):
-                    if(np.abs(check) < 0.0001):
-                        check = 0.0001
-                temp_array.append(check)
-            covariance_array.append(temp_array)
-        k_array.append(covariance_array)
-    return k_array
+    for dimension in range(0, k):
+        probability_values[: ,dimension:dimension+1] = gaussian_estimation_3d(data, mean_gaussian[dimension], covariance_matrix_gaussian[dimension]) * weights_gaussian[dimension]
+            
+    prob_sum = np.sum(probability_values, axis=1)
+    probability_values = np.divide(probability_values, np.tile(prob_sum, (k,1)).transpose())
+    return np.array(probability_values)
 
 
 # m-step of the algorithm
@@ -257,14 +177,21 @@ def maximization_step(n, d, k, data, weights_gaussian, mean_gaussian, covariance
     probability_values - probability of the datapoint being in a gaussian, size (n x k)
     
     Outputs:
-    u_weights - weight of the gaussians, size (k)
-    u_mean_gaussian - mean of the gaussians, size (k x d)
-    u_covariance_matrix_gaussian - covariance of the gaussians, size (k x d x d)
+    weights_gaussian - weight of the gaussians, size (k)
+    new_mean - mean of the gaussians, size (k x d)
+    new_cov - covariance of the gaussians, size (k x d x d)
     """
-    u_weights = update_weights(probability_values, k)
-    u_mean_gaussian = update_mean(data, probability_values, k)
-    u_covariance_matrix_gaussian = update_covariance(data, probability_values, mean_gaussian, k, d, n)
-    return (u_weights, u_mean_gaussian, u_covariance_matrix_gaussian)
+
+    prob_sum = np.sum(probability_values, axis=0)
+    new_mean = np.zeros_like(mean_gaussian)
+    new_cov = np.zeros_like(covariance_matrix_gaussian)
+    for dimension in range(0, k):
+        temp_sum = math.fsum(probability_values[:, dimension])
+        new_mean[dimension] = 1. / prob_sum[dimension] * np.sum(probability_values[:, dimension] * data.T, axis = 1).T           
+        diff = data - new_mean[dimension]
+        new_cov[dimension] = np.array(1. / prob_sum[dimension] * np.dot(np.multiply(diff.T, probability_values[:, dimension]), diff)) 
+        weights_gaussian[dimension] = 1. / (data.shape[0]) * prob_sum[dimension]
+    return (weights_gaussian, new_mean, new_cov)
 
 
 # run e-m algorithm
