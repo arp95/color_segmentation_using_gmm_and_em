@@ -32,7 +32,7 @@ import sys
 # set data path
 k = 4
 d = 3
-iterations = 180
+iterations = 500
 args = sys.argv
 video_path = ""
 file_path = ""
@@ -40,7 +40,6 @@ if(len(args) > 2):
     video_path = args[1]
     file_path = args[2]
 
-"""
 # get training data
 training_data = get_training_data(file_path, 1, 1, 1)
 training_data = training_data[:20000, :]
@@ -51,6 +50,7 @@ training_data = training_data[:20000, :]
 print(weights_gaussian)
 print(mean_gaussian)
 print(covariance_matrix_gaussian)
+
 """
 weights_gaussian = np.array([0.18629567531089725, 0.20251932184135432, 0.40918125362489594, 0.2020037492228503])
 mean_gaussian = np.array([[189.2024833 , 245.14785638, 218.92626451],
@@ -69,12 +69,14 @@ covariance_matrix_gaussian = np.array([[[1516.30024442,  199.03687814,  783.1372
  [[23.63243822,  7.30339784, 17.04521036],
        [ 7.30339784, 61.44401099, 46.086562  ],
        [17.04521036, 46.086562  , 80.98872277]]])
-
+"""
 
 # code for segmenting the buoy
 cap = cv2.VideoCapture(video_path)
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 out = cv2.VideoWriter('green_buoy_3D_gauss.avi', fourcc, 5.0, (640, 480))
+frame_count = 0
+hashmap = {}
 while (cap.isOpened()):
     success, frame = cap.read()
     if success == False:
@@ -88,7 +90,7 @@ while (cap.isOpened()):
         prob[: ,index:index+1] = gaussian_estimation_3d(img, mean_gaussian[index], covariance_matrix_gaussian[index]) * weights_gaussian[index]
         likelihood = prob.sum(1)
     prob = np.reshape(likelihood, (frame.shape[0], frame.shape[1]))
-    prob[prob > np.max(prob) / 8.5] = 255
+    prob[prob > np.max(prob) / 10] = 255
     
     # pre-process image and create a binary image
     output_image = np.zeros_like(frame)
@@ -96,16 +98,21 @@ while (cap.isOpened()):
     output_image[:, :, 1] = prob
     output_image[:, :, 2] = prob
     gray_output_image = cv2.cvtColor(output_image, cv2.COLOR_BGR2GRAY)
-    output_image = cv2.GaussianBlur(gray_output_image, (3, 3), 5)
-    edged = cv2.Canny(output_image, 50, 255)
-    
-    # find contours and segment the orange buoy
+    output_image = cv2.GaussianBlur(gray_output_image, (3, 3), 4)
+    edged = cv2.Canny(output_image, 30, 255)
+
+    # find contours and segment the green buoy
     (cnts, _) = cv2.findContours(edged.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[-2:]
     cnts, _ = sort_contours(cnts, method="right-to-left")
     hull = cv2.convexHull(cnts[0])
     (x, y), radius = cv2.minEnclosingCircle(hull)
-    if radius > 5:
-        cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 0), 2)
+    hashmap[frame_count] = ((x, y), radius)
+    if(radius < 6 and hashmap.get(frame_count - 1) != None):
+        (x, y), radius = hashmap[frame_count - 1]
+
+    if(radius > 6 and frame_count < 50):
+        cv2.circle(frame, (int(x) - 2, int(y) - 1), 9, (0, 255, 0), 5)
         out.write(frame)
     else:
         out.write(frame)
+    frame_count = frame_count + 1
