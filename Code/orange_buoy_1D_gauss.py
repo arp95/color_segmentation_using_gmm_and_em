@@ -55,6 +55,7 @@ print(covariance_matrix_gaussian)
 cap = cv2.VideoCapture(video_path)
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 out = cv2.VideoWriter('orange_buoy_1D_gauss.avi', fourcc, 5.0, (640, 480))
+frame_count = 0
 while (cap.isOpened()):
     success, frame = cap.read()
     if success == False:
@@ -68,7 +69,7 @@ while (cap.isOpened()):
         prob[: ,index:index+1] = gaussian_estimation_array(img, mean_gaussian[index], covariance_matrix_gaussian[index], 1) * weights_gaussian[index]
         likelihood = prob.sum(1)
     prob = np.reshape(likelihood, (frame.shape[0], frame.shape[1]))
-    prob[prob > np.max(prob) / 2.5] = 255
+    prob[prob > np.max(prob) / 2] = 255
     
     # pre-process image and create a binary image
     output_image = np.zeros_like(frame)
@@ -76,14 +77,32 @@ while (cap.isOpened()):
     gray_output_image = cv2.cvtColor(output_image, cv2.COLOR_BGR2GRAY)
     output_image = cv2.GaussianBlur(gray_output_image, (3, 3), 4)
     _, edged = cv2.threshold(output_image, 40, 255, 0)
+    kernel2 = np.ones((2, 2), np.uint8)
+    edged = cv2.dilate(edged, kernel2, iterations = 6)
+    for row in range(0, frame.shape[0] / 2):
+        for col in range(0, frame.shape[1]):
+            edged[row, col] = 0
+    if(frame_count < 25):
+        for row in range(0, frame.shape[0]):
+            for col in range(frame.shape[1] - 200, frame.shape[1]):
+                edged[row, col] = 0
 
     # find contours and segment the orange buoy
     (cnts, _) = cv2.findContours(edged.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[-2:]
-    cnts, _ = sort_contours(cnts, method="right-to-left")
-    hull = cv2.convexHull(cnts[0])
-    (x, y), radius = cv2.minEnclosingCircle(hull)
-    if radius > 3:
-        cv2.circle(frame, (int(x), int(y)), int(radius), (0, 165, 255), 5)
-        out.write(frame)
-    else:
-        out.write(frame)
+    x_max = 0
+    optimal_x = -1
+    optimal_y = -1
+    optimal_radius = -1
+    for contour in cnts:
+        if(cv2.contourArea(contour) > 200):
+            (x,y), radius = cv2.minEnclosingCircle(contour)
+            if(radius > 13 and radius < 50):
+                if(int(x) > x_max and int(x) > 150):
+                    x_max = x
+                    optimal_x = x
+                    optimal_y = y
+                    optimal_radius = radius
+    if(optimal_radius != -1):
+        cv2.circle(frame, (int(optimal_x), int(optimal_y)), int(optimal_radius), (0, 165, 255), 5)
+    out.write(frame)
+    frame_count = frame_count + 1

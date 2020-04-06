@@ -76,16 +76,33 @@ while (cap.isOpened()):
     output_image[:, :, 1] = prob
     gray_output_image = cv2.cvtColor(output_image, cv2.COLOR_BGR2GRAY)
     output_image = cv2.GaussianBlur(gray_output_image, (5, 5), 5)
-    _, edged = cv2.threshold(output_image, 100, 255, 0)
+    _, edged = cv2.threshold(output_image, 125, 255, 0)
+    kernel2 = np.ones((2, 2), np.uint8)
+    edged = cv2.dilate(edged, kernel2, iterations = 6)
+    for row in range(0, frame.shape[0] / 2):
+        for col in range(0, frame.shape[1]):
+            edged[row, col] = 0
+    if(frame_count < 35):
+        for row in range(0, frame.shape[0]):
+            for col in range(frame.shape[1] - 200, frame.shape[1]):
+                edged[row, col] = 0
 
-    # find contours and segment the orange buoy
+    # find contours and segment the green buoy
     (cnts, _) = cv2.findContours(edged.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[-2:]
-    cnts, _ = sort_contours(cnts, method="right-to-left")
-    hull = cv2.convexHull(cnts[0])
-    (x, y), radius = cv2.minEnclosingCircle(hull)
+    x_max = 0
+    optimal_x = -1
+    optimal_y = -1
+    optimal_radius = -1
+    for contour in cnts:
+        if(cv2.contourArea(contour) > 150):
+            (x,y), radius = cv2.minEnclosingCircle(contour)
+            if(radius > 10 and radius < 50):
+                if(int(x) > x_max and int(x) > 150):
+                    x_max = x
+                    optimal_x = x
+                    optimal_y = y
+                    optimal_radius = radius
+    if(optimal_radius != -1):
+        cv2.circle(frame, (int(optimal_x), int(optimal_y)), int(optimal_radius), (0, 255, 0), 5)
+    out.write(frame)
     frame_count = frame_count + 1
-    if (radius > 3 and frame_count < 50):
-        cv2.circle(frame, (int(x), int(y)), int(radius + 1), (0, 255, 0), 5)
-        out.write(frame)
-    else:
-        out.write(frame)
