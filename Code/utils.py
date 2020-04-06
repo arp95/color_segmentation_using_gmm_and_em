@@ -34,7 +34,7 @@ import scipy
 
 
 # initialise step of em algorithm
-def initialise_step(n, d, k):
+def initialise_step(n, d, k, data):
     """
     Inputs:
     n - number of datapoints
@@ -55,9 +55,13 @@ def initialise_step(n, d, k):
     
     # initialise mean
     mean_gaussian = np.zeros((k, d))
+    for dimension in range(0, k):
+        mean_gaussian[dimension] = np.array([data[np.random.choice(data.shape[0])]], np.float64)
     
     # initialise covariance
     covariance_matrix_gaussian = np.zeros((k, d, d))
+    for dimension in range(0, k):
+        covariance_matrix_gaussian[dimension] = np.matrix(np.multiply([np.random.randint(1,255) * np.eye(data.shape[1])], np.random.rand(data.shape[1], data.shape[1])))
     
     # randomly initialise probability
     probability_values = np.zeros((n, k))
@@ -158,8 +162,9 @@ def expectation_step(n, d, k, data, weights_gaussian, mean_gaussian, covariance_
         probability_values[: ,dimension:dimension+1] = gaussian_estimation_3d(data, mean_gaussian[dimension], covariance_matrix_gaussian[dimension]) * weights_gaussian[dimension]
             
     prob_sum = np.sum(probability_values, axis=1)
+    log_likelihood = np.sum(np.log(prob_sum))
     probability_values = np.divide(probability_values, np.tile(prob_sum, (k,1)).transpose())
-    return np.array(probability_values)
+    return (np.array(probability_values), log_likelihood)
 
 
 # m-step of the algorithm
@@ -211,8 +216,9 @@ def run_expectation_maximization_algorithm(n, d, k, iterations, data):
     """
     
     # initialise step
-    (weights_gaussian, mean_gaussian, covariance_matrix_gaussian, probability_values) = initialise_step(n, d, k)
-    
+    (weights_gaussian, mean_gaussian, covariance_matrix_gaussian, probability_values) = initialise_step(n, d, k, data)
+    log_likelihoods = []    
+
     # run for fixed iterations
     for i in range(0, iterations):
     
@@ -220,8 +226,12 @@ def run_expectation_maximization_algorithm(n, d, k, iterations, data):
         (weights_gaussian, mean_gaussian, covariance_matrix_gaussian) = maximization_step(n, d, k, data, weights_gaussian, mean_gaussian, covariance_matrix_gaussian, probability_values)
     
         # e-step
-        probability_values = expectation_step(n, d, k, data, weights_gaussian, mean_gaussian, covariance_matrix_gaussian, probability_values)
-    
+        probability_values, log_likelihood = expectation_step(n, d, k, data, weights_gaussian, mean_gaussian, covariance_matrix_gaussian, probability_values)
+        log_likelihoods.append(log_likelihood)    
+
+        if(len(log_likelihoods) > 2 and np.abs(log_likelihood - log_likelihoods[-2]) < 0.0001):
+            break
+  
     # return answer
     return (weights_gaussian, mean_gaussian, covariance_matrix_gaussian)
 
