@@ -28,7 +28,11 @@
 from utils import *
 import sys
 
+
 # set data path
+k = 6
+d = 3
+iterations = 500
 args = sys.argv
 video_path = ""
 file_path = ""
@@ -41,7 +45,7 @@ training_data = get_training_data(file_path, 1, 1, 1)
 training_data = training_data[:20000, :]
 
 # get the weights, mean and variances of gaussian
-(weights_gaussian, mean_gaussian, covariance_matrix_gaussian) = run_expectation_maximization_algorithm(training_data.shape[0], 3, 6, 10, training_data)
+(weights_gaussian, mean_gaussian, covariance_matrix_gaussian) = run_expectation_maximization_algorithm(training_data.shape[0], d, k, iterations, training_data)
 
 print(weights_gaussian)
 print(mean_gaussian)
@@ -57,14 +61,14 @@ while (cap.isOpened()):
         break    
 
     # steps to find the probability of each pixel in the k-gaussians
-    img = np.reshape(frame, (frame.shape[0] * frame.shape[1], 3))
-    prob = np.zeros((frame.shape[0] * frame.shape[1], 6))
-    likelihood = np.zeros((frame.shape[0] * frame.shape[1], 6))
-    for index in range(0, 6):
+    img = np.reshape(frame, (frame.shape[0] * frame.shape[1], d))
+    prob = np.zeros((frame.shape[0] * frame.shape[1], k))
+    likelihood = np.zeros((frame.shape[0] * frame.shape[1], k))
+    for index in range(0, k):
         prob[: ,index:index+1] = gaussian_estimation_3d(img, mean_gaussian[index], covariance_matrix_gaussian[index]) * weights_gaussian[index]
         likelihood = prob.sum(1)
     prob = np.reshape(likelihood, (frame.shape[0], frame.shape[1]))
-    prob[prob > np.max(prob) / 8.0] = 255
+    prob[prob > np.max(prob) / 9.0] = 255
     
     # pre-process image and create a binary image
     output_image = np.zeros_like(frame)
@@ -80,8 +84,8 @@ while (cap.isOpened()):
     cnts, _ = sort_contours(cnts, method="right-to-left")
     hull = cv2.convexHull(cnts[0])
     (x, y), radius = cv2.minEnclosingCircle(hull)
-    if radius > 5:
-        cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 2)
+    if radius > 4:
+        cv2.circle(frame, (int(x), int(y)), int(radius + 1), (0, 255, 255), 5)
         out.write(frame)
     else:
         out.write(frame)
