@@ -31,7 +31,8 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 import scipy
-
+from scipy.stats import norm
+from scipy.stats import multivariate_normal as mvn
 
 # initialise step of em algorithm
 def initialise_step(n, d, k, data):
@@ -139,6 +140,26 @@ def gaussian_estimation_3d(data_point, mean, cov):
     return (2.0 * np.pi) ** (-len(data_point[1]) / 2.0) * (1.0 / (np.linalg.det(cov) ** 0.5)) * np.exp(-0.5 * np.sum(np.multiply(diff * cov_inv, diff), axis=1))
 
 
+def compute_log_likelihood(input_data, mixture_coeff, mean_gaussian, covariance_gaussian, K):
+    
+    """
+    Inputs
+    
+    mixture_coeff: Mixture coefficient is the probability of the kth gaussian of size (k)
+    mean_gaussian: the mean is the mean of the kth gaussian of size (kxd)
+    covariance_gaussian: Covariance of the Kth gaussian of size (kxdxd)
+    data - training data, size (n x d)
+    K: Number of Gaussians
+    
+    """
+    # We need to compute the log likelihood and do a test for convergence
+    n = input_data.shape[0]
+
+    log_likelihood =  np.log(np.sum(mixture_coeff[k]*mvn.pdf(input_data,mean_gaussian[k],covariance_gaussian[k]) for k in range(K)))
+        
+    return np.sum(log_likelihood)
+
+
 # e-step of the algorithm
 # reference: https://towardsdatascience.com/an-intuitive-guide-to-expected-maximation-em-algorithm-e1eb93648ce9
 def expectation_step(n, d, k, data, weights_gaussian, mean_gaussian, covariance_matrix_gaussian, probability_values):
@@ -229,6 +250,12 @@ def run_expectation_maximization_algorithm(n, d, k, iterations, data):
         probability_values, log_likelihood = expectation_step(n, d, k, data, weights_gaussian, mean_gaussian, covariance_matrix_gaussian, probability_values)
         log_likelihoods.append(log_likelihood)    
 
+        # Loss Function( Test for convergence )
+        log_likelihood = compute_log_likelihood(data, weights_gaussian, mean_gaussian, covariance_matrix_gaussian,k)
+        
+        if i%10 == 0:
+            print("For iteration: " + str(i) + "\nweights: " + str(weights_gaussian) + "\nmean_gaussian: " + str(mean_gaussian) + "\ncovariance: " + str(covariance_matrix_gaussian) + "\nloss: " + str(log_likelihood))
+            print()
         if(len(log_likelihoods) > 2 and np.abs(log_likelihood - log_likelihoods[-2]) < 0.0001):
             break
   

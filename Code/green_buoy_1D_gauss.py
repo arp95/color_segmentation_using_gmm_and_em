@@ -102,7 +102,7 @@ while (cap.isOpened()):
                     optimal_x = x
                     optimal_y = y
                     optimal_radius = radius
-    if(optimal_radius != -1):
+    if(optimal_radius != -1 and frame_count < 50):
         cv2.circle(frame, (int(optimal_x), int(optimal_y)), int(optimal_radius), (0, 255, 0), 5)
     out.write(frame)
     frame_count = frame_count + 1
