@@ -55,6 +55,7 @@ print(covariance_matrix_gaussian)
 cap = cv2.VideoCapture(video_path)
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 out = cv2.VideoWriter('yellow_buoy_3D_gauss.avi', fourcc, 5.0, (640, 480))
+frame_count = 0
 while (cap.isOpened()):
     success, frame = cap.read()
     if success == False:
@@ -76,16 +77,31 @@ while (cap.isOpened()):
     output_image[:, :, 1] = prob
     output_image[:, :, 2] = prob
     gray_output_image = cv2.cvtColor(output_image, cv2.COLOR_BGR2GRAY)
-    output_image = cv2.GaussianBlur(gray_output_image, (3, 3), 4)
-    _, edged = cv2.threshold(output_image, 20, 255, 0)
-    
+    output_image = cv2.GaussianBlur(gray_output_image, (3, 3), 2)
+    _, edged = cv2.threshold(output_image, 150, 255, 0)
+    kernel2 = np.ones((3,3), np.uint8)
+    edged = cv2.dilate(edged, kernel2, iterations = 6)
+    if(frame_count < 100):
+        for row in range(0, frame.shape[0] / 2):
+            for col in range(0, frame.shape[1]):
+                edged[row, col] = 0    
+
     # find contours and segment the orange buoy
     (cnts, _) = cv2.findContours(edged.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[-2:]
-    cnts, _ = sort_contours(cnts, method="right-to-left")
-    hull = cv2.convexHull(cnts[0])
-    (x, y), radius = cv2.minEnclosingCircle(hull)
-    if radius > 4:
-        cv2.circle(frame, (int(x), int(y)), int(radius + 1), (0, 255, 255), 5)
-        out.write(frame)
-    else:
-        out.write(frame)
+    x_min = 1000
+    optimal_x = -1
+    optimal_y = -1
+    optimal_radius = -1
+    for contour in cnts:
+        if(cv2.contourArea(contour) > 100):
+            (x,y), radius = cv2.minEnclosingCircle(contour)
+            if(radius > 5 and radius < 50):
+                if(int(x) < x_min):
+                    x_min = x
+                    optimal_x = x
+                    optimal_y = y
+                    optimal_radius = radius
+    if(optimal_radius != -1):
+        cv2.circle(frame, (int(optimal_x), int(optimal_y)), int(optimal_radius), (0, 255, 255), 4)
+    out.write(frame)
+    frame_count = frame_count + 1
