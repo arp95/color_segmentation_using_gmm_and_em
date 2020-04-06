@@ -9,6 +9,21 @@ Arpit Aggarwal
 ### Instructions for running the code
 To run the code for the files in Code folder, follow the following commands:
 
+
+Running all_buoy_3D_gauss.py file, follow the following command:
+
+```
+cd Code
+python all_buoy_3D_gauss.py 'video_path(in .mp4 format)' 'train_file_path_green' 'train_file_path_yellow' 'train_file_path_orange'
+```
+where, video_path and train_file_path_green, train_file_path_yellow and train_file_path_orange are the paths for input video and training data of the buoys. For example, running the python file on my local setup was:
+
+```
+cd Code/
+python Code/all_buoy_3D_gauss.py /home/arpitdec5/Desktop/color_segmentation_using_gmm_and_em/data/detectbuoy.avi /home/arpitdec5/Desktop/color_segmentation_using_gmm_and_em/data/buoy3/train /home/arpitdec5/Desktop/color_segmentation_using_gmm_and_em/data/buoy1/train /home/arpitdec5/Desktop/color_segmentation_using_gmm_and_em/data/buoy2/train
+```
+
+
 1. For running yellow_buoy files:
 ```
 cd Code
