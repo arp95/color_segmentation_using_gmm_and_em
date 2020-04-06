@@ -100,4 +100,4 @@ python green_buoy_3D_gauss.py /home/arpitdec5/Desktop/color_segmentation_using_g
 
 
 ### Software Required
-To run the .py files, use Python 3. Standard Python 3 libraries like OpenCV, Numpy, matplotlib are used.
+To run the .py files, use Python 3. Standard Python 3 libraries like OpenCV, Numpy, scipy and matplotlib are used.
