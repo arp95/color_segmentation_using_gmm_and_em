@@ -1,9 +1,20 @@
-# Code for Project 3 of ENPM 673-Perception for Autonomous Robots
+# Color Segmentation using Gaussian Mixture Models and Expectation Maximization Techniques
+
+[![Packagist](https://img.shields.io/packagist/l/doctrine/orm.svg)](LICENSE.md)
+---
 
 
 ### Authors
-Shantam Bajpai
 Arpit Aggarwal
+Shantam Bajpai
+
+
+### Introduction to the Project
+In this project, we used Gaussian Mixture Models and Expectation Maximization Techniques for Color Segmentation in videos. The algorithm is described in more detail in the "Report.pdf" file.
+
+
+### Software Required
+To run the .py files, use Python 3. Standard Python 3 libraries like OpenCV, Numpy, scipy and matplotlib are used.
 
 
 ### Instructions for running the code
@@ -99,5 +110,7 @@ python green_buoy_3D_gauss.py /home/arpitdec5/Desktop/color_segmentation_using_g
 ```
 
 
-### Software Required
-To run the .py files, use Python 3. Standard Python 3 libraries like OpenCV, Numpy, scipy and matplotlib are used.
+### Credits
+The following links were helpful for this project:
+1. https://towardsdatascience.com/an-intuitive-guide-to-expected-maximation-em-algorithm-e1eb93648ce9
+2. https://medium.com/@siddharthvadgama/gaussian-mixture-model-gmm-using-em-algorithm-from-scratch-6b7c764aac9f
